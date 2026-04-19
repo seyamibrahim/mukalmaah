@@ -1,5 +1,6 @@
 import express from "express";
 import dotenv from "dotenv";
+import cors from "cors";
 import connectDB from "./config/db.js";
 
 import authRoutes from "./routes/authRoutes.js";
@@ -9,6 +10,7 @@ import aiRoutes from "./routes/aiRoutes.js";
 dotenv.config();
 
 const app = express();
+app.use(cors());
 app.use(express.json());
 
 // Connect Database
