@@ -1,18 +1,34 @@
 import { Language, QuranClient } from "@quranjs/api";
 
 const DEFAULT_RECITER_ID = "2";
+const AYAH_KEY_PATTERN = /^\d{1,3}:\d{1,3}$/;
 
-const stripHtml = (value = "") =>
-  value
-    .replace(/<[^>]+>/g, " ")
-    .replace(/\s+/g, " ")
-    .trim();
+let quranClient;
+let quranResourceConfigPromise;
+const chapterNameCache = new Map();
+
+const stripHtml = (html) => {
+  if (!html) return "";
+  return html.replace(/<[^>]*>/g, "");
+};
 
 const normalizeAudioUrl = (url) => {
-  if (!url) return null;
-  if (url.startsWith("http://") || url.startsWith("https://")) return url;
-  if (url.startsWith("//")) return `https:${url}`;
-  if (url.startsWith("/")) return `https://verses.quran.foundation${url}`;
+  if (!url) {
+    return null;
+  }
+
+  if (url.startsWith("http://") || url.startsWith("https://")) {
+    return url;
+  }
+
+  if (url.startsWith("//")) {
+    return `https:${url}`;
+  }
+
+  if (url.startsWith("/")) {
+    return `https://verses.quran.foundation${url}`;
+  }
+
   return `https://verses.quran.foundation/${url}`;
 };
 
@@ -25,14 +41,19 @@ const getRequiredEnv = (name) => {
   return value;
 };
 
-let quranClient;
-let quranResourceConfigPromise;
-const chapterNameCache = new Map();
+const normalizeAyahKey = (ayahKey) => {
+  if (typeof ayahKey !== "string") {
+    return null;
+  }
+
+  const normalizedKey = ayahKey.trim();
+  return AYAH_KEY_PATTERN.test(normalizedKey) ? normalizedKey : null;
+};
 
 const createQuranClient = () =>
   new QuranClient({
-    clientId: process.env.QURAN_CLIENT_ID,
-    clientSecret: process.env.QURAN_CLIENT_SECRET,
+    clientId: getRequiredEnv("QURAN_CLIENT_ID"),
+    clientSecret: getRequiredEnv("QURAN_CLIENT_SECRET"),
     defaults: {
       language: Language.ENGLISH,
     },
@@ -46,34 +67,35 @@ const getQuranClient = () => {
   return quranClient;
 };
 
-const preferredTranslation = (resources, preferredNames = []) => {
-  const byPreferredName = preferredNames
-    .map((name) =>
-      resources.find(
-        (resource) =>
-          resource.name?.toLowerCase().includes(name) ||
-          resource.slug?.toLowerCase().includes(name),
-      ),
-    )
-    .find(Boolean);
+const findPreferredResource = (
+  resources,
+  preferredNames = [],
+  matcher = () => false,
+) =>
+  preferredNames
+    .map((name) => resources.find((resource) => matcher(resource, name)))
+    .find(Boolean) ||
+  resources[0] ||
+  null;
 
-  return byPreferredName || resources[0] || null;
-};
+const preferredTranslation = (resources, preferredNames = []) =>
+  findPreferredResource(
+    resources,
+    preferredNames,
+    (resource, name) =>
+      resource.name?.toLowerCase().includes(name) ||
+      resource.slug?.toLowerCase().includes(name),
+  );
 
-const preferredTafsir = (resources, preferredNames = []) => {
-  const byPreferredName = preferredNames
-    .map((name) =>
-      resources.find(
-        (resource) =>
-          resource.name?.toLowerCase().includes(name) ||
-          resource.authorName?.toLowerCase().includes(name) ||
-          resource.slug?.toLowerCase().includes(name),
-      ),
-    )
-    .find(Boolean);
-
-  return byPreferredName || resources[0] || null;
-};
+const preferredTafsir = (resources, preferredNames = []) =>
+  findPreferredResource(
+    resources,
+    preferredNames,
+    (resource, name) =>
+      resource.name?.toLowerCase().includes(name) ||
+      resource.authorName?.toLowerCase().includes(name) ||
+      resource.slug?.toLowerCase().includes(name),
+  );
 
 const resolveQuranResourceConfig = async () => {
   if (!quranResourceConfigPromise) {
@@ -84,39 +106,40 @@ const resolveQuranResourceConfig = async () => {
         client.resources.findAllTafsirs(),
       ]);
 
-      const englishTranslation =
+      const englishTranslationId =
         process.env.QURAN_TRANSLATION_EN_ID ||
         preferredTranslation(
           translations.filter(
-            (resource) => resource.languageName === "english",
+            (resource) =>
+              String(resource.languageName || "").toLowerCase() === "english",
           ),
           ["sahih", "clear", "the clear quran"],
         )?.id?.toString();
 
-      const urduTranslation =
+      const urduTranslationId =
         process.env.QURAN_TRANSLATION_UR_ID ||
         preferredTranslation(
-          translations.filter((resource) => resource.languageName === "urdu"),
-          ["maududi", "junagarhi", "ahmed ali"],
+          translations.filter(
+            (resource) =>
+              String(resource.languageName || "").toLowerCase() === "urdu",
+          ),
+          ["maududi", "ahmad raza", "ahmed ali"],
         )?.id?.toString();
 
-      const urduTafsir =
+      const urduTafsirId =
         process.env.QURAN_TAFSIR_UR_ID ||
         preferredTafsir(
-          tafsirs.filter((resource) => resource.languageName === "urdu"),
+          tafsirs.filter(
+            (resource) =>
+              String(resource.languageName || "").toLowerCase() === "urdu",
+          ),
           ["maarif", "maududi", "ibn kathir", "jalalayn"],
         )?.id?.toString();
 
-      if (!englishTranslation || !urduTranslation || !urduTafsir) {
-        throw new Error(
-          "Unable to resolve Quran resource IDs. Set QURAN_TRANSLATION_EN_ID, QURAN_TRANSLATION_UR_ID, and QURAN_TAFSIR_UR_ID in the server environment.",
-        );
-      }
-
       return {
-        englishTranslationId: englishTranslation,
-        urduTranslationId: urduTranslation,
-        urduTafsirId: urduTafsir,
+        englishTranslationId,
+        urduTranslationId,
+        urduTafsirId,
         reciterId: process.env.QURAN_RECITER_ID || DEFAULT_RECITER_ID,
       };
     })();
@@ -126,7 +149,9 @@ const resolveQuranResourceConfig = async () => {
 };
 
 const getSurahName = async (chapterId) => {
-  if (!chapterId) return null;
+  if (!chapterId) {
+    return null;
+  }
 
   const cacheKey = String(chapterId);
   if (chapterNameCache.has(cacheKey)) {
@@ -136,144 +161,218 @@ const getSurahName = async (chapterId) => {
   const chapter = await getQuranClient().chapters.findById(cacheKey, {
     language: Language.ENGLISH,
   });
+
   const surahName =
     chapter?.nameSimple || chapter?.translatedName?.name || `Surah ${cacheKey}`;
+
   chapterNameCache.set(cacheKey, surahName);
   return surahName;
 };
 
+const normalizeLanguage = (languageName) =>
+  String(languageName || "")
+    .trim()
+    .toLowerCase();
+
+const findTranslationByIdOrLanguage = (
+  translations = [],
+  resourceId,
+  languageName,
+  allowFallback = false,
+) => {
+  const normalizedLanguage = normalizeLanguage(languageName);
+
+  return (
+    translations.find(
+      (translation) => String(translation.resourceId) === String(resourceId),
+    ) ||
+    translations.find(
+      (translation) =>
+        normalizeLanguage(translation.languageName) === normalizedLanguage,
+    ) ||
+    translations.find((translation) =>
+      normalizeLanguage(translation.name).includes(normalizedLanguage),
+    ) ||
+    (allowFallback ? translations[0] : null) ||
+    null
+  );
+};
+
+const findTafsirByIdOrLanguage = (
+  tafsirs = [],
+  resourceId,
+  languageName,
+  allowFallback = true,
+) => {
+  const normalizedLanguage = normalizeLanguage(languageName);
+
+  return (
+    tafsirs.find(
+      (tafsir) => String(tafsir.resourceId) === String(resourceId),
+    ) ||
+    tafsirs.find(
+      (tafsir) => normalizeLanguage(tafsir.languageName) === normalizedLanguage,
+    ) ||
+    tafsirs.find((tafsir) =>
+      normalizeLanguage(tafsir.name).includes(normalizedLanguage),
+    ) ||
+    (allowFallback ? tafsirs[0] : null) ||
+    null
+  );
+};
+
+const mapVersePayload = async (
+  ayahKey,
+  verse,
+  resourceConfig,
+  audioResponse,
+) => {
+  const englishTranslation = findTranslationByIdOrLanguage(
+    verse?.translations,
+    resourceConfig.englishTranslationId,
+    "english",
+    true,
+  );
+  const urduTranslation = findTranslationByIdOrLanguage(
+    verse?.translations,
+    resourceConfig.urduTranslationId,
+    "urdu",
+    false,
+  );
+  const urduTafsir = findTafsirByIdOrLanguage(
+    verse?.tafsirs,
+    resourceConfig.urduTafsirId,
+    "urdu",
+    true,
+  );
+  const audioFile =
+    audioResponse?.audioFiles?.[0] ||
+    verse?.audio?.audioFiles?.[0] ||
+    verse?.audio ||
+    null;
+  const surahName = await getSurahName(verse?.chapterId);
+
+  const arabicTextValue =
+    verse?.textUthmani || verse?.text || verse?.textIndopak || "";
+
+  // console.log("urdu tranlation:", urduTranslation);
+  // console.log("english tranlation:", englishTranslation);
+  // console.log("urdu tafsir:", urduTafsir);
+  return {
+    ayahKey,
+    verseKey: verse?.verseKey || ayahKey,
+    chapterId: verse?.chapterId || null,
+    verseNumber: verse?.verseNumber || null,
+    arabicText: arabicTextValue,
+    textUthmani: verse?.textUthmani || arabicTextValue,
+    translationUrdu: stripHtml(urduTranslation?.text || ""),
+    translationEnglish: stripHtml(englishTranslation?.text || ""),
+    tafsir: stripHtml(urduTafsir?.text || ""),
+    tafsirMeta: urduTafsir
+      ? {
+          resourceId: urduTafsir.resourceId || null,
+          resourceName: urduTafsir.resourceName || null,
+          languageName: urduTafsir.languageName || "urdu",
+        }
+      : null,
+    audioUrl: normalizeAudioUrl(audioFile?.url),
+    audio: audioFile
+      ? {
+          url: normalizeAudioUrl(audioFile.url),
+          format: audioFile.format || "stream",
+          reciterId: resourceConfig.reciterId,
+        }
+      : null,
+    surahName: surahName || `Surah ${ayahKey.split(":")[0]}`,
+  };
+};
+
 export const fetchAyahData = async (ayahKey) => {
+  const normalizedAyahKey = normalizeAyahKey(ayahKey);
+
+  if (!normalizedAyahKey) {
+    return null;
+  }
+
   try {
     const client = getQuranClient();
-    const { englishTranslationId, urduTranslationId, urduTafsirId, reciterId } =
-      await resolveQuranResourceConfig();
-    console.log(`Fetching verse data for ${ayahKey} with resources:`, {
-      englishTranslationId,
-      urduTranslationId,
-      urduTafsirId,
-      reciterId,
-    });
+    const resourceConfig = await resolveQuranResourceConfig();
+    console.log(
+      `Fetching data for Ayah ${normalizedAyahKey} with resources:`,
+      resourceConfig,
+    );
+    const translationIds = [
+      resourceConfig.englishTranslationId,
+      resourceConfig.urduTranslationId,
+    ].filter(Boolean);
+    const tafsirIds = [resourceConfig.urduTafsirId].filter(Boolean);
+
     const [verse, audioResponse] = await Promise.all([
-      client.verses.findByKey(ayahKey, {
-        translations: [englishTranslationId, urduTranslationId],
-        tafsirs: [urduTafsirId],
+      client.verses.findByKey(normalizedAyahKey, {
+        translations: translationIds.length ? translationIds : undefined,
+        tafsirs: tafsirIds.length ? tafsirIds : undefined,
         fields: {
           textUthmani: true,
         },
       }),
-      client.audio.findVerseRecitationsByKey(ayahKey, reciterId),
+      client.audio.findVerseRecitationsByKey(
+        normalizedAyahKey,
+        resourceConfig.reciterId,
+      ),
     ]);
-    console.log(`Fetched verse data for ${ayahKey}:`, {
-      verse: {
-        key: verse?.key,
-        chapterId: verse?.chapterId,
-        verseNumber: verse?.verseNumber,
-        textUthmani: verse?.textUthmani,
-        translations: verse?.translations?.map((t) => ({
-          resourceId: t.resourceId,
-          languageName: t.languageName,
-        })),
-        tafsirs: verse?.tafsirs?.map((t) => ({
-          resourceId: t.resourceId,
-          languageName: t.languageName,
-        })),
-      },
-      audioResponse: {
-        audioFiles: audioResponse?.audioFiles?.map((a) => ({
-          url: a.url,
-          format: a.format,
-        })),
-      },
-    }); 
-    const englishTranslation =
-      verse.translations?.find(
-        (translation) =>
-          String(translation.resourceId) === String(englishTranslationId),
-      ) ||
-      verse.translations?.find(
-        (translation) => translation.languageName === "english",
-      ) ||
-      null;
-
-    const urduTranslation =
-      verse.translations?.find(
-        (translation) =>
-          String(translation.resourceId) === String(urduTranslationId),
-      ) ||
-      verse.translations?.find(
-        (translation) => translation.languageName === "urdu",
-      ) ||
-      null;
-
-    const urduTafsir =
-      verse.tafsirs?.find(
-        (tafsir) => String(tafsir.resourceId) === String(urduTafsirId),
-      ) ||
-      verse.tafsirs?.find((tafsir) => tafsir.languageName === "urdu") ||
-      null;
-
-    
-    console.log(`Resolved translations and tafsir for ${ayahKey}:`, {
-      englishTranslation: englishTranslation
-        ? {
-            resourceId: englishTranslation.resourceId,
-            languageName: englishTranslation.languageName,
-          }
-        : null,
-      urduTranslation: urduTranslation
-        ? {
-            resourceId: urduTranslation.resourceId,
-            languageName: urduTranslation.languageName,
-          }
-        : null,
-      urduTafsir: urduTafsir
-        ? {
-            resourceId: urduTafsir.resourceId,
-            languageName: urduTafsir.languageName,
-          }
-        : null,
+    console.log(`Fetched data for Ayah ${normalizedAyahKey}:`, {
+      verse,
+      audioResponse,
     });
-    const surahName = await getSurahName(verse.chapterId);
-    const audioFile = audioResponse?.audioFiles?.[0] || null;
-    console.log(`Resolved audio file for ${ayahKey}:`, {
-      audioFile: audioFile
-        ? {
-            url: audioFile.url,
-            format: audioFile.format,
-          }
-        : null,
-    });
-    return {
-      ayahKey,
-      arabicText: verse.textUthmani || "",
-      translation: stripHtml(englishTranslation?.text || ""),
-      translationEnglish: stripHtml(englishTranslation?.text || ""),
-      translationUrdu: stripHtml(urduTranslation?.text || ""),
-      translations: {
-        english: stripHtml(englishTranslation?.text || ""),
-        urdu: stripHtml(urduTranslation?.text || ""),
-      },
-      tafsir: stripHtml(urduTafsir?.text || ""),
-      tafseer: stripHtml(urduTafsir?.text || ""),
-      tafsirMeta: urduTafsir
-        ? {
-            resourceId: urduTafsir.resourceId || null,
-            resourceName: urduTafsir.resourceName || null,
-            languageName: urduTafsir.languageName || "urdu",
-          }
-        : null,
-      audioUrl: normalizeAudioUrl(audioFile?.url),
-      audio: audioFile
-        ? {
-            url: normalizeAudioUrl(audioFile.url),
-            format: audioFile.format || "stream",
-            reciterId,
-          }
-        : null,
-      surahName: surahName || `Surah ${ayahKey.split(":")[0]}`,
-    };
+    if (!verse) {
+      return null;
+    }
+    // let value = await mapVersePayload(
+    //   normalizedAyahKey,
+    //   verse,
+    //   resourceConfig,
+    //   audioResponse,
+    // );
+    // console.log(`Mapped data for Ayah ${normalizedAyahKey}:`, value);
+    return await mapVersePayload(
+      normalizedAyahKey,
+      verse,
+      resourceConfig,
+      audioResponse,
+    );
   } catch (error) {
-    console.error(`Error fetching Quran data for ${ayahKey}:`, error.message);
+    console.error(
+      `Error fetching Quran data for ${normalizedAyahKey}:`,
+      error.message,
+    );
     return null;
   }
+};
+
+export const fetchAyahsData = async (ayahKeys = []) => {
+  const normalizedAyahKeys = [
+    ...new Set(ayahKeys.map(normalizeAyahKey).filter(Boolean)),
+  ];
+
+  if (!normalizedAyahKeys.length) {
+    return [];
+  }
+
+  const results = await Promise.allSettled(
+    normalizedAyahKeys.map((ayahKey) => fetchAyahData(ayahKey)),
+  );
+
+  return results
+    .map((result, index) => {
+      if (result.status === "fulfilled") {
+        return result.value;
+      }
+
+      console.error(
+        `Error fetching Quran data for ${normalizedAyahKeys[index]}:`,
+        result.reason,
+      );
+      return null;
+    })
+    .filter(Boolean);
 };

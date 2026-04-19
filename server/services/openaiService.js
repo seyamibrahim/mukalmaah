@@ -1,9 +1,27 @@
-import { GoogleGenAI } from '@google/genai';
+import OpenAI from "openai";
 
-// Note: Ensure Gemini_MUQALMAH_API_KEY is available in process.env
-const initializeGemini = () => {
-  return new GoogleGenAI({ apiKey: process.env.Gemini_MUQALMAH_API_KEY });
-};const systemPrompt = `You are an Islamic guidance assistant.
+const DEFAULT_OPENAI_MODEL = "gpt-4o";
+
+let openAiClient;
+
+/**
+ * Returns an instance of the OpenAI client, creating a new instance if necessary.
+ * This function requires the environment variable MUKALMAH_API_KEY to be set.
+ * @returns {OpenAI} an instance of the OpenAI client.
+ */
+const getOpenAIClient = () => {
+  if (!process.env.MUKALMAH_API_KEY) {
+    throw new Error("Missing required environment variable: OPENAI_API_KEY");
+  }
+
+  if (!openAiClient) {
+    openAiClient = new OpenAI({ apiKey: process.env.MUKALMAH_API_KEY });
+  }
+
+  return openAiClient;
+};
+
+const systemPrompt = `You are an Islamic guidance assistant.
 
 Your task is to understand the user's emotional or personal situation and provide:
 - Qur'an references (Surah:Ayah format ONLY)
@@ -44,10 +62,11 @@ OUTPUT FORMAT:
 }
 
 GUIDELINES:
-- Provide 1-2 Qur'an references (SurahNumber:AyahNumber).
-- Provide 1–2 authentic Hadith references (prefer Sahih al-Bukhari, Sahih Muslim).
+- Provide 1-3 Qur'an references (SurahNumber:AyahNumber).
+- Provide 1-3 authentic Hadith references (prefer Sahih al-Bukhari, Sahih Muslim).
 - Provide 1-2 FULL duas.
 - Ensure duas are highly relevant to the user’s situation.
+- Dua must be in context of user's prompt not just a random dua
 - Prefer well-known authentic duas, such as:
   - “Allahumma inni a'udhu bika minal-hammi wal-hazan…”
   - “La ilaha illa anta, subhanaka inni kuntu minaz-zalimin”
@@ -85,24 +104,49 @@ EXAMPLE OUTPUT:
   ]
 }`;
 
-
+/**
+ * Generates Islamic guidance based on the user's prompt.
+ * The guidance is generated using the OpenAI API and is returned as a JSON object.
+ * The JSON object contains the following keys:
+ * - user_intent: a short summary of the user's intent.
+ * - quran: an array of Qur'an references (Surah:Ayah format).
+ * - hadiths: an array of Hadith references (Book name + Hadith number format).
+ * - duas: an array of duas, each containing the following keys:
+ *   - title: a short descriptive title for the dua.
+ *   - arabic: the full authentic dua in Arabic.
+ *   - translation_en: the clear English translation of the dua.
+ *   - translation_ur: the clear Urdu translation of the dua.
+ *   - reference: the Qur'an reference or Hadith source or 'General Sunnah'.
+ * @param {string} prompt the user's prompt.
+ * @returns {Promise<object>} a promise that resolves to a JSON object containing the generated Islamic guidance.
+ * @throws {Error} if the OpenAI API request fails or if the JSON response is invalid.
+ */
 export const getIslamicGuidance = async (prompt) => {
   try {
-    const ai = initializeGemini();
+    const client = getOpenAIClient();
 
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      config: {
-        systemInstruction: systemPrompt,
-        responseMimeType: "application/json",
-      }
+    const completion = await client.chat.completions.create({
+      model: process.env.OPENAI_MODEL || DEFAULT_OPENAI_MODEL,
+      temperature: 0.3,
+      response_format: { type: "json_object" },
+      messages: [
+        { role: "system", content: systemPrompt },
+        { role: "user", content: prompt },
+      ],
     });
 
-    return JSON.parse(response.text);
+    const content = completion.choices?.[0]?.message?.content;
+    // Parse JSON safely
+    let parsedResponse;
+    try {
+      parsedResponse = JSON.parse(content);
+    } catch (err) {
+      console.error("Invalid JSON response:", content);
+      throw new Error("Failed to parse JSON");
+    }
+    return parsedResponse;
   } catch (error) {
-    console.error('Gemini API error:', error);
-    throw new Error('Failed to generate AI response');
+    console.error("OpenAI API error:", error);
+    throw new Error("Failed to generate AI response");
   }
 };

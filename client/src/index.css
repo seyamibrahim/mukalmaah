@@ -27,29 +27,48 @@ html.dark {
 body {
   background-color: var(--color-background);
   color: var(--color-text);
-  font-family: 'Inter', sans-serif;
-  transition: background-color 0.3s ease, color 0.3s ease;
+  font-family: "Inter", sans-serif;
+  transition:
+    background-color 0.3s ease,
+    color 0.3s ease;
   overflow: hidden;
 }
 
 /* Hide all scrollbars globally but keep scroll functionality */
 * {
-  scrollbar-width: none;       /* Firefox */
-  -ms-overflow-style: none;    /* IE / Edge */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE / Edge */
 }
 *::-webkit-scrollbar {
-  display: none;               /* Chrome, Safari, Opera */
+  display: none; /* Chrome, Safari, Opera */
 }
 
 @layer utilities {
-  .bg-primary { background-color: var(--color-primary); }
-  .hover\:bg-primary-hover:hover { background-color: var(--color-primary-hover); }
-  .text-primary { color: var(--color-primary); }
-  .bg-surface { background-color: var(--color-surface); }
-  .hover\:bg-surface-hover:hover { background-color: var(--color-surface-hover); }
-  .text-muted { color: var(--color-text-muted); }
-  .border-custom { border-color: var(--color-border); }
-  
+  .bg-primary {
+    background-color: var(--color-primary);
+  }
+  .hover\:bg-primary-hover:hover {
+    background-color: var(--color-primary-hover);
+  }
+  .text-primary {
+    color: var(--color-primary);
+  }
+  .bg-surface {
+    background-color: var(--color-surface);
+  }
+  .hover\:bg-surface-hover:hover {
+    background-color: var(--color-surface-hover);
+  }
+  .text-muted {
+    color: var(--color-text-muted);
+  }
+  .border-custom {
+    border-color: var(--color-border);
+  }
+  .font-urdu {
+    font-family: "Noto Nastaliq Urdu", serif;
+  }
+
   .glass-panel {
     background-color: rgba(255, 255, 255, 0.05);
     backdrop-filter: blur(10px);

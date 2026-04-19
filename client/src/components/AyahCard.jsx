@@ -1,69 +1,116 @@
-import React, { useState } from 'react';
-import { Copy, ChevronDown, ChevronUp, CheckCircle2 } from 'lucide-react';
-import AudioPlayer from './AudioPlayer';
-import TranslationAudioPlayer from './TranslationAudioPlayer';
+import React, { useState } from "react";
+import { Copy, ChevronDown, ChevronUp, CheckCircle2 } from "lucide-react";
+import AudioPlayer from "./AudioPlayer";
+import TranslationAudioPlayer from "./TranslationAudioPlayer";
 
 const AyahCard = ({ ayah }) => {
   const [showTafsir, setShowTafsir] = useState(false);
   const [copied, setCopied] = useState(false);
-  const englishTranslation = ayah.translationEnglish || ayah.translations?.english || ayah.translation || '';
-  const urduTranslation = ayah.translationUrdu || ayah.translations?.urdu || '';
-  const audioUrl = ayah.audioUrl || ayah.audio?.url || '';
-
-  // Note: Assuming ayah object has: ayahKey, arabicText, translation, tafsir, audioUrl, surahName
+  const arabicText =
+    ayah.arabicText || ayah.textUthmani || ayah.text || ayah.arabic || "";
+  const englishTranslation =
+    ayah.translationEnglish ||
+    ayah.englishTranslation ||
+    ayah.translations?.english ||
+    ayah.translation_en ||
+    ayah.translation ||
+    "";
+  const urduTranslation =
+    ayah.translationUrdu ||
+    ayah.urduTranslation ||
+    ayah.translations?.urdu ||
+    ayah.translation_ur ||
+    "";
+  const tafsirText =
+    ayah.tafsir || ayah.tafseer || ayah.tafsirText || ayah.explanation || "";
+  const audioUrl =
+    ayah.audioUrl || ayah.audio?.url || ayah.audio?.audioUrl || "";
 
   const handleCopy = () => {
     navigator.clipboard.writeText(
-      `${ayah.arabicText}\n\n${englishTranslation}\n\n${urduTranslation}\n- Quran ${ayah.ayahKey}`,
+      `${arabicText}\n\n${urduTranslation}\n\n${englishTranslation}\n- Quran ${ayah.ayahKey}`,
     );
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
   };
 
   // Strip basic html tags if any are in tafsir
-  const cleanTafsir = ayah.tafsir ? ayah.tafsir.replace(/<[^>]*>?/gm, '') : '';
+  const cleanTafsir = tafsirText ? tafsirText.replace(/<[^>]*>?/gm, "") : "";
 
   return (
-    <div className="bg-surface border border-custom rounded-2xl overflow-hidden shadow-sm transition-all hover:border-primary/30">
+    <div className="bg-surface border border-custom rounded-4xl overflow-hidden shadow-2xl shadow-primary/10 transition-all hover:border-primary/40">
       <div className="p-6">
-        <div className="flex justify-between items-start mb-6">
-          <div className="flex flex-col gap-1">
-            <span className="bg-primary/10 text-primary text-xs font-bold px-3 py-1 rounded-full w-fit">
-              {ayah.surahName} • Ayah {ayah.ayahKey.split(':')[1]}
+        <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-6">
+          <div className="space-y-2">
+            <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-primary">
+              {ayah.surahName} • Ayah {ayah.ayahKey.split(":")[1]}
             </span>
+            <p className="text-sm text-text-muted max-w-2xl">
+              {ayah.surahName} ({ayah.ayahKey}) guidance, recitation and tafseer
+              in a clean verse card.
+            </p>
           </div>
-          <button 
+          <button
             onClick={handleCopy}
-            className="p-2 text-muted hover:text-primary transition-colors rounded-lg bg-background"
+            className="inline-flex items-center justify-center rounded-2xl border border-custom bg-background px-4 py-3 text-text transition hover:border-primary hover:text-primary"
             title="Copy Ayah"
           >
-            {copied ? <CheckCircle2 className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4" />}
+            {copied ? (
+              <CheckCircle2 className="w-4 h-4 text-primary" />
+            ) : (
+              <Copy className="w-4 h-4" />
+            )}
+            <span className="ml-2 text-xs font-semibold uppercase tracking-[0.24em]">
+              Copy
+            </span>
           </button>
         </div>
 
         <div className="space-y-6">
-          <p className="text-3xl md:text-4xl text-right font-arabic leading-[2.5]" dir="rtl">
-            {ayah.arabicText}
-          </p>
-          {englishTranslation && (
-            <p className="text-lg text-text border-l-4 border-primary pl-4 py-1 italic">
-              "{englishTranslation}"
+          <div className="rounded-4xl bg-background/80 border border-custom px-6 py-7 shadow-sm">
+            <p
+              className="text-2xl md:text-3xl text-right font-arabic leading-[2.2] tracking-[0.02em]"
+              dir="rtl"
+            >
+              {arabicText}
             </p>
-          )}
+          </div>
+
           {urduTranslation && (
-            <div className="rounded-2xl bg-background border border-custom px-5 py-4">
-              <p className="mb-2 text-xs font-semibold uppercase tracking-wider text-primary/80">Urdu Translation</p>
-              <p className="text-right text-lg leading-loose text-text" dir="rtl">
+            <div className="rounded-4xl bg-[#0b1728] border border-primary/10 px-5 py-5 shadow-inner">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-primary/70">
+                Urdu Translation
+              </p>
+              <p
+                className="text-right text-2xl leading-relaxed text-text font-urdu"
+                dir="rtl"
+              >
                 {urduTranslation}
+              </p>
+            </div>
+          )}
+
+          {englishTranslation && (
+            <div className="rounded-4xl bg-background border border-custom px-5 py-5 shadow-sm">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-primary/70">
+                English Translation
+              </p>
+              <p className="text-lg text-text italic leading-relaxed">
+                "{englishTranslation}"
               </p>
             </div>
           )}
         </div>
       </div>
 
-      <div className="bg-background border-t border-custom px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex flex-col md:flex-row gap-4 w-full">
-          {audioUrl && <AudioPlayer audioUrl={audioUrl} title={`Recitation ${ayah.ayahKey}`} />}
+      <div className="bg-background border-t border-custom px-6 py-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center w-full">
+          {audioUrl && (
+            <AudioPlayer
+              audioUrl={audioUrl}
+              title={`Recitation ${ayah.ayahKey}`}
+            />
+          )}
           {urduTranslation && (
             <TranslationAudioPlayer
               text={urduTranslation}
@@ -72,24 +119,37 @@ const AyahCard = ({ ayah }) => {
             />
           )}
         </div>
-        
-        {cleanTafsir && (
-          <button 
+
+        {cleanTafsir ? (
+          <button
             onClick={() => setShowTafsir(!showTafsir)}
-            className="text-sm font-medium text-primary flex items-center justify-center gap-2 hover:bg-primary/5 px-4 py-2 rounded-xl transition-colors md:ml-auto"
+            className="inline-flex items-center justify-center gap-2 rounded-full border border-primary bg-transparent px-4 py-2 text-sm font-semibold text-primary transition hover:bg-primary/10 md:ml-auto"
           >
-            {showTafsir ? 'Hide Tafseer' : 'Read Tafseer'}
-            {showTafsir ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            {showTafsir ? "Hide Tafseer" : "Show Tafseer"}
+            {showTafsir ? (
+              <ChevronUp className="w-4 h-4" />
+            ) : (
+              <ChevronDown className="w-4 h-4" />
+            )}
           </button>
+        ) : (
+          <div className="text-xs text-muted italic md:ml-auto">
+            Tafseer not available
+          </div>
         )}
       </div>
 
       {showTafsir && cleanTafsir && (
         <div className="border-t border-custom bg-surface p-6">
-          <h5 className="text-sm font-semibold text-muted mb-3 uppercase tracking-wider">Tafseer (Explanation)</h5>
+          <h5 className="text-sm font-semibold text-muted mb-3 uppercase tracking-wider">
+            Tafseer (Explanation)
+          </h5>
           <div className="text-sm text-text leading-relaxed prose prose-invert max-w-none">
             {/* simple truncate if extremely long, or just let it scroll */}
-            <p className="whitespace-pre-line">{cleanTafsir.substring(0, 1500)}{cleanTafsir.length > 1500 ? '...' : ''}</p>
+            <p className="whitespace-pre-line">
+              {cleanTafsir.substring(0, 1500)}
+              {cleanTafsir.length > 1500 ? "..." : ""}
+            </p>
           </div>
         </div>
       )}
