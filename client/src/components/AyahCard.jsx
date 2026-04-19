@@ -38,8 +38,8 @@ const AyahCard = ({ ayah }) => {
   const cleanTafsir = tafsirText ? tafsirText.replace(/<[^>]*>?/gm, "") : "";
 
   return (
-    <div className="bg-surface border border-custom rounded-4xl overflow-hidden shadow-2xl shadow-primary/10 transition-all hover:border-primary/40">
-      <div className="p-6">
+    <div className="bg-surface border border-custom rounded-2xl md:rounded-4xl overflow-hidden shadow-2xl shadow-primary/10 transition-all hover:border-primary/40">
+      <div className="p-4 md:p-6">
         <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between mb-6">
           <div className="space-y-2">
             <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.24em] text-primary">
@@ -66,10 +66,10 @@ const AyahCard = ({ ayah }) => {
           </button>
         </div>
 
-        <div className="space-y-6">
-          <div className="rounded-4xl bg-background/80 border border-custom px-6 py-7 shadow-sm">
+        <div className="space-y-4 md:space-y-6">
+          <div className="rounded-2xl md:rounded-4xl bg-background/80 border border-custom px-4 md:px-6 py-5 md:py-7 shadow-sm">
             <p
-              className="text-2xl md:text-3xl text-right font-arabic leading-[2.2] tracking-[0.02em]"
+              className="text-xl md:text-2xl lg:text-3xl text-right font-arabic leading-[2.2] tracking-[0.02em]"
               dir="rtl"
             >
               {arabicText}
@@ -77,12 +77,12 @@ const AyahCard = ({ ayah }) => {
           </div>
 
           {urduTranslation && (
-            <div className="rounded-4xl bg-[#0b1728] border border-primary/10 px-5 py-5 shadow-inner">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-primary/70">
+            <div className="rounded-2xl md:rounded-4xl bg-[#0b1728] border border-primary/10 px-4 md:px-5 py-4 md:py-5 shadow-inner">
+              <p className="mb-2 md:mb-3 text-xs font-semibold uppercase tracking-wider text-primary/70">
                 Urdu Translation
               </p>
               <p
-                className="text-right text-2xl leading-relaxed text-text font-urdu"
+                className="text-lg md:text-2xl text-right leading-relaxed text-text font-urdu"
                 dir="rtl"
               >
                 {urduTranslation}
@@ -91,11 +91,11 @@ const AyahCard = ({ ayah }) => {
           )}
 
           {englishTranslation && (
-            <div className="rounded-4xl bg-background border border-custom px-5 py-5 shadow-sm">
-              <p className="mb-3 text-xs font-semibold uppercase tracking-wider text-primary/70">
+            <div className="rounded-2xl md:rounded-4xl bg-background border border-custom px-4 md:px-5 py-4 md:py-5 shadow-sm">
+              <p className="mb-2 md:mb-3 text-xs font-semibold uppercase tracking-wider text-primary/70">
                 English Translation
               </p>
-              <p className="text-lg text-text italic leading-relaxed">
+              <p className="text-base md:text-lg text-text italic leading-relaxed">
                 "{englishTranslation}"
               </p>
             </div>
@@ -103,7 +103,7 @@ const AyahCard = ({ ayah }) => {
         </div>
       </div>
 
-      <div className="bg-background border-t border-custom px-6 py-4 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+      <div className="bg-background border-t border-custom px-4 md:px-6 py-3 md:py-4 flex flex-col gap-3 md:gap-4 md:flex-row md:items-center md:justify-between">
         <div className="flex flex-col gap-4 md:flex-row md:items-center w-full">
           {audioUrl && (
             <AudioPlayer
@@ -140,8 +140,8 @@ const AyahCard = ({ ayah }) => {
       </div>
 
       {showTafsir && cleanTafsir && (
-        <div className="border-t border-custom bg-surface p-6">
-          <h5 className="text-sm font-semibold text-muted mb-3 uppercase tracking-wider">
+        <div className="border-t border-custom bg-surface p-4 md:p-6">
+          <h5 className="text-sm font-semibold text-muted mb-2 md:mb-3 uppercase tracking-wider">
             Tafseer (Explanation)
           </h5>
           <div className="text-sm text-text leading-relaxed prose prose-invert max-w-none">

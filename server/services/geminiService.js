@@ -3,7 +3,8 @@ import { GoogleGenAI } from '@google/genai';
 // Note: Ensure Gemini_MUQALMAH_API_KEY is available in process.env
 const initializeGemini = () => {
   return new GoogleGenAI({ apiKey: process.env.Gemini_MUQALMAH_API_KEY });
-};const systemPrompt = `You are an Islamic guidance assistant.
+};
+const systemPrompt = `You are an Islamic guidance assistant.
 
 Your task is to understand the user's emotional or personal situation and provide:
 - Qur'an references (Surah:Ayah format ONLY)
@@ -86,23 +87,36 @@ EXAMPLE OUTPUT:
 }`;
 
 
+import Groq from "groq-sdk";
+
+const groq = new Groq({
+  apiKey: process.env.GROQ_API_KEY,
+});
+
 export const getIslamicGuidance = async (prompt) => {
   try {
-    const ai = initializeGemini();
-
-
-    const response = await ai.models.generateContent({
-      model: 'gemini-2.5-flash',
-      contents: [{ role: 'user', parts: [{ text: prompt }] }],
-      config: {
-        systemInstruction: systemPrompt,
-        responseMimeType: "application/json",
-      }
+    const response = await groq.chat.completions.create({
+      model: "llama3-70b-8192", // best quality
+      messages: [
+        {
+          role: "system",
+          content: systemPrompt, // same as Gemini systemInstruction
+        },
+        {
+          role: "user",
+          content: prompt,
+        },
+      ],
+      temperature: 0.7,
     });
 
-    return JSON.parse(response.text);
+    const text = response.choices[0]?.message?.content || "";
+
+    // If your system prompt ensures JSON output
+    return JSON.parse(text);
+
   } catch (error) {
-    console.error('Gemini API error:', error);
-    throw new Error('Failed to generate AI response');
+    console.error("Groq API error:", error);
+    throw new Error("Failed to generate AI response");
   }
 };
