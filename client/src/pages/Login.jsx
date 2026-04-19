@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { Mail, Lock, Loader2 } from "lucide-react";
+import { Lock, User as UserIcon, Loader2 } from "lucide-react";
 import useAuthStore from "../store/useAuthStore";
 import { motion } from "framer-motion";
 import logo from "../assets/logo-removebg-preview.png";
@@ -47,7 +47,7 @@ const Login = () => {
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
+            <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
             <input
               type="email"
               placeholder="Email Address"

@@ -1,12 +1,12 @@
 import React, { useState } from "react";
 import { Link } from "react-router-dom";
-import { Mail, Lock, User as UserIcon, Loader2 } from "lucide-react";
+import { Lock, User as UserIcon, Loader2 } from "lucide-react";
 import useAuthStore from "../store/useAuthStore";
 import { motion } from "framer-motion";
 import logo from "../assets/logo-removebg-preview.png";
 
 const Signup = () => {
-  const [name, setName] = useState("");
+  const [username, setUsername] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const { signup, isLoading, error } = useAuthStore();
@@ -17,7 +17,7 @@ const Signup = () => {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    signup(name, email, password);
+    signup(username, email, password);
   };
 
   return (
@@ -51,15 +51,15 @@ const Signup = () => {
             <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
             <input
               type="text"
-              placeholder="Full Name"
-              value={name}
-              onChange={(e) => setName(e.target.value)}
+              placeholder="Username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               className="w-full bg-background border border-custom rounded-xl py-3 pl-10 pr-4 outline-none focus:border-primary transition-colors"
               required
             />
           </div>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
+            <UserIcon className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted" />
             <input
               type="email"
               placeholder="Email Address"
