@@ -1,0 +1,24 @@
+version: "3.8"
+
+services:
+  mukalmaah:
+    build: ./server
+    ports:
+      - "5000:5000"
+    env_file:
+      - ./server/.env
+    networks:
+      - app-network
+
+  mukalmaah_ui:
+    build: ./client
+    ports:
+      - "3000:3000"
+    depends_on:
+      - mukalmaah
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge

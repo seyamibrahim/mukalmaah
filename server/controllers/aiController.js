@@ -1,5 +1,5 @@
 import Chat from '../models/Chat.js';
-import { getIslamicGuidance } from '../services/groqService.js';
+import { getIslamicGuidance } from '../services/openaiService.js';
 import { fetchAyahsData } from '../services/quranApiService.js';
 
 const extractAyahKeys = (guidanceData) => {
